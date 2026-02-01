@@ -3,8 +3,11 @@ const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
+
+// Generate UUID using built-in crypto module
+const uuidv4 = () => crypto.randomUUID();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
