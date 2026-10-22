@@ -1,19 +1,10 @@
-import Hero from "@/components/Hero";
-import Stats from "@/components/Stats";
-import LoanTypes from "@/components/LoanTypes";
-import Features from "@/components/Features";
-import Testimonials from "@/components/Testimonials";
-import Footer from "@/components/Footer";
+import fs from 'fs';
+import path from 'path';
+import LedgerPage from '@/components/LedgerPage';
 
 export default function Home() {
-  return (
-    <>
-      <Hero />
-      <Stats />
-      <LoanTypes />
-      <Features />
-      <Testimonials />
-      <Footer />
-    </>
-  );
+  const filePath = path.join(process.cwd(), 'public', 'ledger.html');
+  const htmlContent = fs.readFileSync(filePath, 'utf8');
+
+  return <LedgerPage initialHtml={htmlContent} />;
 }

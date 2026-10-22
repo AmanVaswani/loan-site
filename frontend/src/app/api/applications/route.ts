@@ -1,13 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || '';
+// Lazy initialization of Supabase client
+let supabase: SupabaseClient | null = null;
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+function getSupabaseClient() {
+  if (!supabase) {
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || '';
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error('Missing Supabase configuration');
+    }
+
+    supabase = createClient(supabaseUrl, supabaseServiceKey);
+  }
+  return supabase;
+}
 
 export async function POST(request: NextRequest) {
   try {
+    const client = getSupabaseClient();
     const formData = await request.formData();
 
     const fullName = formData.get('fullName') as string;
@@ -42,7 +55,7 @@ export async function POST(request: NextRequest) {
         const buffer = await file.arrayBuffer();
         const fileName = `${applicationId}/${fieldName}_${Date.now()}.${file.name.split('.').pop()}`;
 
-        const { error } = await supabase.storage
+        const { error } = await client.storage
           .from('documents')
           .upload(fileName, buffer, {
             contentType: file.type,
@@ -53,7 +66,7 @@ export async function POST(request: NextRequest) {
           console.error(`Error uploading ${fieldName}:`, error);
           uploadedFiles[fieldName] = null;
         } else {
-          const { data: urlData } = supabase.storage
+          const { data: urlData } = client.storage
             .from('documents')
             .getPublicUrl(fileName);
           uploadedFiles[fieldName] = urlData.publicUrl;
@@ -62,7 +75,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert application into database
-    const { data: application, error: insertError } = await supabase
+    const { data: application, error: insertError } = await client
       .from('loan_applications')
       .insert([{
         id: applicationId,
@@ -111,32 +124,41 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const id = searchParams.get('id');
+  try {
+    const client = getSupabaseClient();
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
 
-  if (id) {
-    const { data, error } = await supabase
+    if (id) {
+      const { data, error } = await client
+        .from('loan_applications')
+        .select('id, full_name, loan_type, loan_amount, status, created_at')
+        .eq('id', id)
+        .single();
+
+      if (error || !data) {
+        return NextResponse.json({ error: 'Application not found' }, { status: 404 });
+      }
+
+      return NextResponse.json(data);
+    }
+
+    // Return all applications (admin)
+    const { data, error } = await client
       .from('loan_applications')
-      .select('id, full_name, loan_type, loan_amount, status, created_at')
-      .eq('id', id)
-      .single();
+      .select('*')
+      .order('created_at', { ascending: false });
 
-    if (error || !data) {
-      return NextResponse.json({ error: 'Application not found' }, { status: 404 });
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json(data);
+  } catch (error) {
+    console.error('Error fetching applications:', error);
+    return NextResponse.json({
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
-
-  // Return all applications (admin)
-  const { data, error } = await supabase
-    .from('loan_applications')
-    .select('*')
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json(data);
 }

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { ArrowRight, Shield, Clock, BadgePercent } from 'lucide-react';
+import { trackCTAClick } from '@/lib/analytics';
 
 export default function Hero() {
   return (
@@ -32,6 +33,7 @@ export default function Hero() {
             <div className="flex flex-col sm:flex-row gap-4 mb-12">
               <Link
                 href="/apply"
+                onClick={() => trackCTAClick('Apply for Loan', 'Hero')}
                 className="inline-flex items-center justify-center px-8 py-4 bg-white text-blue-600 rounded-full text-lg font-semibold hover:bg-blue-50 transition-colors group"
               >
                 Apply for Loan
@@ -39,6 +41,7 @@ export default function Hero() {
               </Link>
               <Link
                 href="#loans"
+                onClick={() => trackCTAClick('Explore Loan Types', 'Hero')}
                 className="inline-flex items-center justify-center px-8 py-4 border-2 border-white text-white rounded-full text-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors"
               >
                 Explore Loan Types
@@ -92,6 +95,7 @@ export default function Hero() {
 
             <Link
               href="/apply"
+              onClick={() => trackCTAClick('Apply Now - Free Consultation', 'Hero Card')}
               className="block w-full py-4 bg-blue-600 text-white rounded-xl text-center font-semibold hover:bg-blue-700 transition-colors"
             >
               Apply Now - Free Consultation

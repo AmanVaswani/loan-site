@@ -1,149 +1,232 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
-import { Phone, Mail, MapPin, MessageCircle, Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
+import Image from 'next/image';
+import { Phone, Mail, MapPin, MessageCircle, Send, Loader2, CheckCircle } from 'lucide-react';
+import { trackContactFormSubmit, trackContactFormSuccess, trackPhoneClick, trackWhatsAppClick, trackCTAClick } from '@/lib/analytics';
 
 export default function Footer() {
+  const [contactForm, setContactForm] = useState({ name: '', phone: '', message: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    trackContactFormSubmit();
+
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(contactForm),
+      });
+
+      if (response.ok) {
+        setSubmitSuccess(true);
+        trackContactFormSuccess();
+        setContactForm({ name: '', phone: '', message: '' });
+        setTimeout(() => setSubmitSuccess(false), 5000);
+      }
+    } catch (error) {
+      console.error('Contact form error:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <footer id="contact" className="bg-gray-900 text-white">
-      {/* CTA Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-800 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-2xl md:text-3xl font-bold mb-4">
-            Ready to Get Your Loan?
-          </h2>
-          <p className="text-blue-100 mb-6 max-w-2xl mx-auto">
-            Apply now and get up to 20% cashback on your first 3 EMIs. Our team will contact you within 24 hours!
-          </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <Link
-              href="/apply"
-              className="px-8 py-4 bg-white text-blue-600 rounded-full font-semibold hover:bg-blue-50 transition-colors"
-            >
-              Apply for Loan
+    <footer className="bg-[#062015] text-white/60 relative overflow-hidden pt-16">
+      {/* Top Foil Border */}
+      <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#0E4A2C] via-[#C8942E] to-[#0E4A2C]" />
+
+      <div className="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Callback Form Card inside Dark Section */}
+        <div className="mb-14 p-8 rounded-2xl bg-[#08291B] border border-white/10 shadow-2xl">
+          <div className="max-w-2xl mx-auto text-center mb-6">
+            <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#E2BC6A]">Have Questions?</span>
+            <h3 className="font-serif text-2xl md:text-3xl font-bold text-white mt-1">Get an Expert Callback</h3>
+            <p className="text-sm text-white/70 mt-2">Fill the form and an independent advisor will call you within 24 hours.</p>
+          </div>
+
+          {submitSuccess ? (
+            <div className="max-w-md mx-auto bg-[#0E4A2C] border border-[#1D8B4E] rounded-xl p-6 text-center text-white">
+              <CheckCircle className="mx-auto mb-2 text-[#E2BC6A]" size={40} />
+              <h4 className="font-serif text-xl font-bold">Request Received</h4>
+              <p className="text-sm text-white/80 mt-1">Our loan specialist will call you shortly.</p>
+            </div>
+          ) : (
+            <form onSubmit={handleContactSubmit} className="max-w-2xl mx-auto">
+              <div className="grid md:grid-cols-2 gap-4 mb-4">
+                <input
+                  type="text"
+                  required
+                  placeholder="Your Full Name *"
+                  value={contactForm.name}
+                  onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
+                  className="px-4 py-3 bg-[#062015]/80 border border-white/15 rounded-xl text-white placeholder-white/40 focus:border-[#C8942E] focus:outline-none transition-all text-sm"
+                />
+                <input
+                  type="tel"
+                  required
+                  placeholder="10-digit Phone Number *"
+                  value={contactForm.phone}
+                  onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
+                  className="px-4 py-3 bg-[#062015]/80 border border-white/15 rounded-xl text-white placeholder-white/40 focus:border-[#C8942E] focus:outline-none transition-all text-sm"
+                />
+              </div>
+              <textarea
+                placeholder="Loan requirement or question (Optional)"
+                value={contactForm.message}
+                onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
+                rows={2}
+                className="w-full px-4 py-3 bg-[#062015]/80 border border-white/15 rounded-xl text-white placeholder-white/40 focus:border-[#C8942E] focus:outline-none transition-all text-sm mb-4 resize-none"
+              />
+              <div className="flex justify-center">
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-8 py-3 rounded-full font-semibold text-sm text-[#062015] bg-gradient-to-r from-[#8A6118] via-[#C8942E] to-[#F2DFAC] shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="animate-spin" size={16} />
+                      <span>Sending...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send size={16} />
+                      <span>Request Free Callback</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+
+        {/* 4-Column Footer Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 pb-12 border-b border-white/10">
+          {/* Brand Info */}
+          <div>
+            <Link href="/#/home" className="flex items-center gap-3 mb-4 group">
+              <div className="relative w-11 h-11 flex-shrink-0">
+                <Image
+                  src="/logo.png"
+                  alt="Loan ki Baat"
+                  fill
+                  className="object-cover rounded-full"
+                />
+              </div>
+              <div className="flex flex-col leading-none">
+                <span className="font-serif font-bold text-xl text-white tracking-tight">
+                  Loan <i className="font-serif italic text-[#C8942E]">ki</i> Baat
+                </span>
+                <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/40 mt-1">
+                  Baat hai paiso ki
+                </span>
+              </div>
             </Link>
-            <a
-              href="https://wa.me/919876543210?text=Hi, I want to apply for a loan"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center px-8 py-4 bg-green-500 text-white rounded-full font-semibold hover:bg-green-600 transition-colors"
-            >
-              <MessageCircle className="mr-2" size={20} />
-              WhatsApp Us
-            </a>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Footer */}
-      <div className="py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-12">
-            {/* Company Info */}
-            <div>
-              <div className="flex items-center space-x-2 mb-6">
-                <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center">
-                  <span className="text-white font-bold text-xl">L</span>
-                </div>
-                <span className="text-xl font-bold">LoanEase</span>
-              </div>
-              <p className="text-gray-400 mb-6">
-                Your trusted partner for all loan needs. We help you find the best loan rates from India&apos;s leading banks.
-              </p>
-              <div className="flex space-x-4">
-                <a href="#" className="p-2 bg-gray-800 rounded-lg hover:bg-blue-600 transition-colors">
-                  <Facebook size={20} />
-                </a>
-                <a href="#" className="p-2 bg-gray-800 rounded-lg hover:bg-blue-400 transition-colors">
-                  <Twitter size={20} />
-                </a>
-                <a href="#" className="p-2 bg-gray-800 rounded-lg hover:bg-pink-600 transition-colors">
-                  <Instagram size={20} />
-                </a>
-                <a href="#" className="p-2 bg-gray-800 rounded-lg hover:bg-blue-700 transition-colors">
-                  <Linkedin size={20} />
-                </a>
-              </div>
-            </div>
-
-            {/* Loan Types */}
-            <div>
-              <h3 className="text-lg font-bold mb-6">Loan Types</h3>
-              <ul className="space-y-3">
-                <li><Link href="/apply?type=personal" className="text-gray-400 hover:text-white transition-colors">Personal Loan</Link></li>
-                <li><Link href="/apply?type=home" className="text-gray-400 hover:text-white transition-colors">Home Loan</Link></li>
-                <li><Link href="/apply?type=business" className="text-gray-400 hover:text-white transition-colors">Business Loan</Link></li>
-                <li><Link href="/apply?type=car" className="text-gray-400 hover:text-white transition-colors">Car Loan</Link></li>
-                <li><Link href="/apply?type=education" className="text-gray-400 hover:text-white transition-colors">Education Loan</Link></li>
-                <li><Link href="/apply?type=gold" className="text-gray-400 hover:text-white transition-colors">Gold Loan</Link></li>
-              </ul>
-            </div>
-
-            {/* Quick Links */}
-            <div>
-              <h3 className="text-lg font-bold mb-6">Quick Links</h3>
-              <ul className="space-y-3">
-                <li><Link href="/" className="text-gray-400 hover:text-white transition-colors">Home</Link></li>
-                <li><Link href="#loans" className="text-gray-400 hover:text-white transition-colors">Our Loans</Link></li>
-                <li><Link href="#features" className="text-gray-400 hover:text-white transition-colors">Why Choose Us</Link></li>
-                <li><Link href="#testimonials" className="text-gray-400 hover:text-white transition-colors">Testimonials</Link></li>
-                <li><Link href="/apply" className="text-gray-400 hover:text-white transition-colors">Apply Now</Link></li>
-              </ul>
-            </div>
-
-            {/* Contact Info */}
-            <div>
-              <h3 className="text-lg font-bold mb-6">Contact Us</h3>
-              <ul className="space-y-4">
-                <li className="flex items-start space-x-3">
-                  <Phone className="text-blue-500 mt-1 flex-shrink-0" size={20} />
-                  <div>
-                    <p className="text-white">+91 98765 43210</p>
-                    <p className="text-gray-400 text-sm">Mon-Sat: 9AM - 7PM</p>
-                  </div>
-                </li>
-                <li className="flex items-start space-x-3">
-                  <MessageCircle className="text-green-500 mt-1 flex-shrink-0" size={20} />
-                  <div>
-                    <p className="text-white">WhatsApp</p>
-                    <p className="text-gray-400 text-sm">24/7 Available</p>
-                  </div>
-                </li>
-                <li className="flex items-start space-x-3">
-                  <Mail className="text-blue-500 mt-1 flex-shrink-0" size={20} />
-                  <div>
-                    <p className="text-white">support@loanease.com</p>
-                    <p className="text-gray-400 text-sm">We reply within 24 hours</p>
-                  </div>
-                </li>
-                <li className="flex items-start space-x-3">
-                  <MapPin className="text-red-500 mt-1 flex-shrink-0" size={20} />
-                  <div>
-                    <p className="text-white">Mumbai, Maharashtra</p>
-                    <p className="text-gray-400 text-sm">India</p>
-                  </div>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Bar */}
-      <div className="border-t border-gray-800 py-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-            <p className="text-gray-400 text-sm">
-              &copy; {new Date().getFullYear()} LoanEase. All rights reserved.
+            <p className="text-sm text-white/60 leading-relaxed mb-6">
+              An independent loan comparison and advisory platform helping Indians find the right credit at a fair price — with honesty, clarity and zero borrower fees.
             </p>
-            <div className="flex space-x-6">
-              <Link href="/privacy" className="text-gray-400 text-sm hover:text-white transition-colors">
-                Privacy Policy
-              </Link>
-              <Link href="/terms" className="text-gray-400 text-sm hover:text-white transition-colors">
-                Terms of Service
-              </Link>
+            <ul className="space-y-3 text-xs text-white/70">
+              <li className="flex items-center gap-2">
+                <Phone size={14} className="text-[#E2BC6A]" />
+                <a href="tel:+917389672476" onClick={() => trackPhoneClick('Footer')} className="hover:text-white transition-colors">
+                  +91 73896 72476 · Mon–Sat, 9 AM – 9 PM IST
+                </a>
+              </li>
+              <li className="flex items-center gap-2">
+                <MessageCircle size={14} className="text-emerald-400" />
+                <a href="https://wa.me/917389672476" onClick={() => trackWhatsAppClick('Footer')} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+                  WhatsApp Support (24/7)
+                </a>
+              </li>
+              <li className="flex items-center gap-2">
+                <Mail size={14} className="text-[#E2BC6A]" />
+                <span>loankibaat.jbp@gmail.com</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <MapPin size={14} className="text-[#E2BC6A] mt-0.5" />
+                <span>4th Floor, Business Park, Andheri East, Mumbai 400069</span>
+              </li>
+            </ul>
+          </div>
+
+          {/* Loan Types */}
+          <div>
+            <h4 className="font-mono text-[10px] uppercase tracking-[0.22em] text-white font-medium mb-4">
+              Loan Categories
+            </h4>
+            <ul className="space-y-2.5 text-sm">
+              <li><Link href="/apply?type=personal" className="hover:text-[#E2BC6A] transition-colors">Personal Loan</Link></li>
+              <li><Link href="/apply?type=home" className="hover:text-[#E2BC6A] transition-colors">Home Loan</Link></li>
+              <li><Link href="/apply?type=business" className="hover:text-[#E2BC6A] transition-colors">Business Loan</Link></li>
+              <li><Link href="/apply?type=car" className="hover:text-[#E2BC6A] transition-colors">Car Loan</Link></li>
+              <li><Link href="/apply?type=education" className="hover:text-[#E2BC6A] transition-colors">Education Loan</Link></li>
+              <li><Link href="/apply?type=gold" className="hover:text-[#E2BC6A] transition-colors">Gold Loan</Link></li>
+            </ul>
+          </div>
+
+          {/* Tools & Company */}
+          <div>
+            <h4 className="font-mono text-[10px] uppercase tracking-[0.22em] text-white font-medium mb-4">
+              Tools & Company
+            </h4>
+            <ul className="space-y-2.5 text-sm">
+              <li><Link href="/#/tools" className="hover:text-[#E2BC6A] transition-colors">EMI Calculator</Link></li>
+              <li><Link href="/#/rates" className="hover:text-[#E2BC6A] transition-colors">Live Rate Board</Link></li>
+              <li><Link href="/#/about" className="hover:text-[#E2BC6A] transition-colors">About Us</Link></li>
+              <li><Link href="/#/contact" className="hover:text-[#E2BC6A] transition-colors">Contact Support</Link></li>
+              <li><Link href="/apply" className="hover:text-[#E2BC6A] transition-colors font-medium text-[#E2BC6A]">Apply for Loan</Link></li>
+            </ul>
+          </div>
+
+          {/* Trust Badges */}
+          <div>
+            <h4 className="font-mono text-[10px] uppercase tracking-[0.22em] text-white font-medium mb-4">
+              Trust & Security
+            </h4>
+            <div className="flex flex-wrap gap-2 mb-6">
+              <span className="font-mono text-[9px] uppercase tracking-wider px-2.5 py-1.5 rounded border border-white/15 text-white/70">
+                SSL Secured
+              </span>
+              <span className="font-mono text-[9px] uppercase tracking-wider px-2.5 py-1.5 rounded border border-white/15 text-white/70">
+                Data in India
+              </span>
+              <span className="font-mono text-[9px] uppercase tracking-wider px-2.5 py-1.5 rounded border border-white/15 text-white/70">
+                RBI Reg. Partners
+              </span>
+              <span className="font-mono text-[9px] uppercase tracking-wider px-2.5 py-1.5 rounded border border-white/15 text-white/70">
+                ISO 27001
+              </span>
             </div>
+            <p className="text-xs text-white/50 leading-relaxed">
+              We protect your data with bank-grade encryption and partner only with RBI-registered lenders.
+            </p>
+          </div>
+        </div>
+
+        {/* Big Wordmark */}
+        <div className="font-serif font-bold text-center text-4xl sm:text-6xl md:text-8xl tracking-tighter my-8 bg-gradient-to-r from-[#8A6118] via-[#C8942E] to-[#F2DFAC] bg-clip-text text-transparent select-none opacity-90">
+          Loan ki Baat
+        </div>
+
+        {/* Legal Disclaimer */}
+        <div className="text-[11px] leading-relaxed text-white/40 border-t border-white/10 pt-6 pb-6">
+          <strong className="text-white/60">Disclaimer: </strong>
+          Loan ki Baat is an independent loan comparison and advisory platform and is not a bank or NBFC lender. We do not sanction, disburse or service credit directly. Interest rates and loan terms are indicative based on partner bank guidelines; actual offers depend on credit evaluation by respective lending institutions. Borrow responsibly.
+        </div>
+
+        {/* Bottom Bar */}
+        <div className="flex flex-col sm:flex-row justify-between items-center py-5 border-t border-white/10 text-[11px] font-mono uppercase tracking-wider text-white/40 gap-3">
+          <div>© {new Date().getFullYear()} Loan ki Baat · All rights reserved · Proudly Indian</div>
+          <div className="flex gap-4">
+            <Link href="/#/contact" className="hover:text-[#E2BC6A]">Privacy</Link>
+            <Link href="/#/contact" className="hover:text-[#E2BC6A]">Terms</Link>
+            <Link href="/#/home" className="hover:text-[#E2BC6A]">Home</Link>
           </div>
         </div>
       </div>

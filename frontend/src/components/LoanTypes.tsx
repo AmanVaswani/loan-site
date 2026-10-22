@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Home, Briefcase, Car, GraduationCap, Coins, User, ArrowRight } from 'lucide-react';
+import { trackLoanTypeClick } from '@/lib/analytics';
 
 const loanTypes = [
   {
@@ -117,6 +118,7 @@ export default function LoanTypes() {
 
                 <Link
                   href={`/apply?type=${loan.id}`}
+                  onClick={() => trackLoanTypeClick(loan.name)}
                   className="flex items-center justify-center w-full py-3 bg-gray-100 text-gray-900 rounded-xl font-semibold hover:bg-blue-600 hover:text-white transition-colors group"
                 >
                   Apply Now

@@ -1,22 +1,15 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Header from "@/components/Header";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import ConditionalHeader from "@/components/ConditionalHeader";
+import GoogleAnalytics from "@/components/GoogleAnalytics";
 
 export const metadata: Metadata = {
-  title: "LoanEase - Best Loan Rates in India | Personal, Home, Business Loans",
-  description: "Get the lowest interest rates on personal loans, home loans, business loans, car loans & more. Quick approval, minimal documentation. 10-20% cashback on first 3 EMIs!",
+  title: "Loan ki Baat — The cheapest loan you actually qualify for",
+  description: "Compare live interest rates from 25+ banks and NBFCs across personal, home, business, car, education and gold loans. Free EMI tools, zero fees for borrowers.",
   keywords: "loan, personal loan, home loan, business loan, car loan, education loan, gold loan, low interest rate, quick approval, India",
+  icons: {
+    icon: "/logo.png",
+  },
 };
 
 export default function RootLayout({
@@ -26,11 +19,19 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <Header />
-        <main className="pt-16">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap"
+          rel="stylesheet"
+        />
+        <link rel="stylesheet" href="/ledger.css" />
+      </head>
+      <body className="antialiased bg-[#F5F0E4] text-[#12261B]">
+        <GoogleAnalytics />
+        <ConditionalHeader />
+        <main>
           {children}
         </main>
       </body>
