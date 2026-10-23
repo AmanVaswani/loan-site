@@ -55,12 +55,16 @@ export async function POST(request: NextRequest) {
       console.error('Failed to save callback to database:', dbErr);
     }
 
-    // Send email using Gmail SMTP if configured
-    const gmailUser = process.env.GMAIL_USER;
-    const gmailAppPassword = process.env.GMAIL_APP_PASSWORD;
+    // Send email using SendPulse or standard SMTP / Gmail
+    const smtpHost = process.env.SMTP_HOST || 'smtp-pulse.com';
+    const smtpPort = parseInt(process.env.SMTP_PORT || '465', 10);
+    const smtpUser = process.env.SMTP_USER || process.env.GMAIL_USER;
+    const smtpPass = process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD;
+    const notifyEmail = process.env.NOTIFICATION_EMAIL || 'loankibaat.jbp@gmail.com';
+    const fromEmail = process.env.SMTP_FROM || smtpUser;
 
-    if (!gmailUser || !gmailAppPassword) {
-      console.log('Lead saved. Gmail credentials not configured, skipping SMTP notification.');
+    if (!smtpUser || !smtpPass) {
+      console.log('Lead saved. SMTP credentials not configured, skipping email notification.');
       return NextResponse.json({
         success: true,
         message: 'Request received! We will contact you soon.',
@@ -68,26 +72,95 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Create transporter using Gmail SMTP
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: gmailUser,
-        pass: gmailAppPassword,
-      },
-    });
+    // Create transporter (supports SendPulse, Gmail, or any custom SMTP)
+    const transporter = process.env.GMAIL_USER && !process.env.SMTP_USER
+      ? nodemailer.createTransport({
+          service: 'gmail',
+          auth: { user: smtpUser, pass: smtpPass }
+        })
+      : nodemailer.createTransport({
+          host: smtpHost,
+          port: smtpPort,
+          secure: smtpPort === 465, // true for 465, false for 587
+          auth: { user: smtpUser, pass: smtpPass }
+        });
 
-    // Email content
+    // Email content with Ledger House branding
     const mailOptions = {
-      from: `LoanEase Website <${gmailUser}>`,
-      to: 'amanvaswani4@gmail.com',
-      subject: `🔔 New Callback Request from ${name}`,
+      from: `"Loan ki Baat" <${fromEmail}>`,
+      to: notifyEmail,
+      replyTo: email || undefined,
+      subject: `🔔 New Loan Callback Request: ${name} (${phone})`,
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 10px 10px 0 0;">
-            <h1 style="color: white; margin: 0;">New Contact Request</h1>
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #FCF9F1; border: 1px solid rgba(14,74,44,0.18); border-radius: 12px; overflow: hidden;">
+          <div style="background: #062015; padding: 24px 28px; border-bottom: 3px solid #C8942E;">
+            <div style="color: #C8942E; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 6px; font-weight: 600;">Loan ki Baat · New Inquiry</div>
+            <h1 style="color: #FFFDF5; margin: 0; font-size: 22px; font-weight: 600;">Callback Request Received</h1>
           </div>
-          <div style="background: #f9f9f9; padding: 20px; border: 1px solid #ddd; border-top: none; border-radius: 0 0 10px 10px;">
+          <div style="padding: 28px;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 14.5px;">
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid rgba(14,74,44,0.1); color: #5E7266; width: 140px; font-weight: 600;">Applicant Name:</td>
+                <td style="padding: 10px 0; border-bottom: 1px solid rgba(14,74,44,0.1); color: #062015; font-weight: 600;">${name}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid rgba(14,74,44,0.1); color: #5E7266; font-weight: 600;">Phone Number:</td>
+                <td style="padding: 10px 0; border-bottom: 1px solid rgba(14,74,44,0.1); color: #0E4A2C; font-weight: 700;">
+                  <a href="tel:${phone}" style="color: #0E4A2C; text-decoration: none;">${phone}</a>
+                </td>
+              </tr>
+              ${email ? `
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid rgba(14,74,44,0.1); color: #5E7266; font-weight: 600;">Email:</td>
+                <td style="padding: 10px 0; border-bottom: 1px solid rgba(14,74,44,0.1); color: #062015;">
+                  <a href="mailto:${email}" style="color: #062015;">${email}</a>
+                </td>
+              </tr>` : ''}
+              ${loanType ? `
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid rgba(14,74,44,0.1); color: #5E7266; font-weight: 600;">Loan Type:</td>
+                <td style="padding: 10px 0; border-bottom: 1px solid rgba(14,74,44,0.1); color: #062015;">${loanType}</td>
+              </tr>` : ''}
+              ${loanAmount ? `
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid rgba(14,74,44,0.1); color: #5E7266; font-weight: 600;">Requested Amount:</td>
+                <td style="padding: 10px 0; border-bottom: 1px solid rgba(14,74,44,0.1); color: #8A6118; font-weight: 600;">${loanAmount}</td>
+              </tr>` : ''}
+              ${city ? `
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid rgba(14,74,44,0.1); color: #5E7266; font-weight: 600;">City:</td>
+                <td style="padding: 10px 0; border-bottom: 1px solid rgba(14,74,44,0.1); color: #062015;">${city}</td>
+              </tr>` : ''}
+              <tr>
+                <td style="padding: 10px 0; color: #5E7266; font-weight: 600; vertical-align: top;">Notes / Message:</td>
+                <td style="padding: 10px 0; color: #062015; line-height: 1.6;">${message || 'Standard quote enquiry / callback request.'}</td>
+              </tr>
+            </table>
+
+            <div style="margin-top: 24px; padding: 16px; background: #E6F0E7; border-radius: 8px; border-left: 4px solid #0E4A2C;">
+              <p style="margin: 0; font-size: 13.5px; color: #0E4A2C; font-weight: 500;">
+                ⚡ <strong>Instant Contact:</strong>
+                <a href="tel:${phone}" style="color: #0E4A2C; margin-left: 10px; text-decoration: underline;">📞 Call ${phone}</a> | 
+                <a href="https://wa.me/91${phone.replace(/[^0-9]/g, '').slice(-10)}" style="color: #0E4A2C; margin-left: 6px; text-decoration: underline;">💬 WhatsApp</a>
+              </p>
+            </div>
+          </div>
+          <div style="background: #F5F0E4; padding: 12px 28px; text-align: center; color: #8A9A91; font-size: 11.5px; border-top: 1px solid rgba(14,74,44,0.1);">
+            Loan ki Baat · Jabalpur · Automated Lead Dispatch
+          </div>
+        </div>
+      `,
+      text: `
+New Lead - Loan ki Baat
+Name: ${name}
+Phone: ${phone}
+Email: ${email || 'N/A'}
+Loan Type: ${loanType || 'N/A'}
+Amount: ${loanAmount || 'N/A'}
+City: ${city || 'N/A'}
+Message: ${message || 'N/A'}
+      `.trim()
+    };
             <table style="width: 100%; border-collapse: collapse;">
               <tr>
                 <td style="padding: 10px; border-bottom: 1px solid #eee; font-weight: bold; width: 120px;">Name:</td>
